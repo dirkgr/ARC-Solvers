@@ -63,23 +63,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(__file__, os.par
 from arc_solvers.processing.es_search import EsSearch, EsHit
 
 MAX_HITS = 8
-es_search = EsSearch(max_hits_per_choice=MAX_HITS, max_hits_retrieved=100)
+DEFAULT_CORPUS_NAME = "arc_corpus"
 
 
-def add_retrieved_text(qa_file, output_file):
+def add_retrieved_text(qa_file, output_file, corpus_name=DEFAULT_CORPUS_NAME):
     with open(output_file, 'w') as output_handle, open(qa_file, 'r') as qa_handle:
         print("Writing to {} from {}".format(output_file, qa_file))
         line_tqdm = tqdm(qa_handle, dynamic_ncols=True)
         for line in line_tqdm:
             json_line = json.loads(line)
             num_hits = 0
-            for output_dict in add_hits_to_qajson(json_line):
+            for output_dict in add_hits_to_qajson(json_line, corpus_name):
                 output_handle.write(json.dumps(output_dict) + "\n")
                 num_hits += 1
             line_tqdm.set_postfix(hits=num_hits)
 
 
-def add_hits_to_qajson(qa_json: JsonDict):
+def add_hits_to_qajson(qa_json: JsonDict, corpus_name=DEFAULT_CORPUS_NAME):
+    es_search = EsSearch(
+        max_hits_per_choice=MAX_HITS,
+        max_hits_retrieved=100,
+        indices=corpus_name)
     question_text = qa_json["question"]["stem"]
     choices = [choice["text"] for choice in qa_json["question"]["choices"]]
     hits_per_choice = es_search.get_hits_for_question(question_text, choices)
@@ -130,7 +134,16 @@ def create_output_dict(qa_json: JsonDict, choice_json: JsonDict, hit: EsHit):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        raise ValueError("Provide at least two arguments: "
-                         "question-answer json file, output file name")
-    add_retrieved_text(sys.argv[1], sys.argv[2])
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Get lines from the ES index and add them to a question set')
+    parser.add_argument('question_file', help='Path of file containing questions and answers')
+    parser.add_argument('output', help='Name of output file')
+    parser.add_argument(
+        'corpus_name',
+        help='Name of the corpus, must match the name of the index in ES',
+        default=DEFAULT_CORPUS_NAME,
+        nargs='?')
+    args = parser.parse_args()
+
+    add_retrieved_text(args.question_file, args.output, args.corpus_name)

@@ -32,7 +32,8 @@ qa_predictions=${input_file_prefix}_qapredictions_${model_name}_${run_name}.json
 if [ ! -f ${input_file_with_hits} ]; then
   python arc_solvers/processing/add_retrieved_text.py \
     ${input_file} \
-    ${input_file_with_hits}.$$
+    ${input_file_with_hits}.$$ \
+    sentencesfk
   mv ${input_file_with_hits}.$$ ${input_file_with_hits}
 fi
 

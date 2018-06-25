@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # ----------------------------------------
 # Evaluate a BiDAF model on the QA dataset
@@ -28,7 +29,8 @@ bidaf_input=${input_file_prefix}_with_paras_${run_name}.jsonl
 if [ ! -f ${input_file_with_hits} ]; then
   python arc_solvers/processing/add_retrieved_text.py \
     ${input_file} \
-    ${input_file_with_hits}.$$
+    ${input_file_with_hits}.$$ \
+    sentencesfk
   mv ${input_file_with_hits}.$$ ${input_file_with_hits}
 fi
 
